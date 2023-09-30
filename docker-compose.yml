@@ -3,10 +3,15 @@ version: '3.7'
 volumes:
     prometheus_data: {}
     grafana_data: {}
+    uptime-kuma: {}
 
 networks:
   front-tier:
   back-tier:
+
+configs:
+  postgres_exporter_config:
+    file: ./postgres-exporter/queries.yaml
 
 services:
 
@@ -106,6 +111,48 @@ services:
       - front-tier
     restart: always
 
+  postgres-db:
+    image: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    networks:
+      - back-tier
+    deploy:
+      mode: global
+
+  postgres-exporter:
+    image: wrouesnel/postgres_exporter:latest
+    ports:
+      - "9187:9187"
+    configs:
+      - source: postgres_exporter_config
+        target: /etc/postgres_exporter/queries.yaml
+    networks:
+      - back-tier
+    restart: always
+    deploy:
+      mode: global
+    environment:
+      - DATA_SOURCE_NAME=postgresql://postgres:postgres@postgres-db:5432/postgres?sslmode=disable
+      - PG_EXPORTER_EXTEND_QUERY_PATH=/etc/postgres_exporter/queries.yaml
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    volumes:
+      - uptime-kuma:/app/data
+    ports:
+      - "3001:3001"  # <Host Port>:<Container Port>
+    networks:
+      - back-tier
+    restart: always
+    deploy:
+      mode: global
+    
 #  pushgateway:
 #    image: prom/pushgateway
 #    restart: always

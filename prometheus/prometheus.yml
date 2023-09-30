@@ -51,3 +51,20 @@ scrape_configs:
   
     static_configs:
       - targets: ['node-exporter:9100']
+
+  - job_name: 'postgres-exporter'
+
+    # Override the global default and scrape targets from this job every 5 seconds.
+    scrape_interval: 15s
+  
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  - job_name: 'uptime'
+    scrape_interval: 30s
+    scheme: http
+    static_configs:
+      - targets: ['uptime-kuma:3001']
+    basic_auth: # Only needed if authentication is enabled (default) 
+      username: admin
+      password: admin123
